@@ -330,8 +330,8 @@ class BeerFestivalApp {
         // Create search query for Untappd
         const searchQuery = encodeURIComponent(`${beer.brewery} ${beer.beer}`);
         
-        // Untappd URLs
-        const untappdAppUrl = `untappd://search?q=${searchQuery}`;
+        // Untappd URLs - try multiple app URL formats
+        const untappdAppUrl = `untappd://search/${searchQuery}`;
         const untappdWebUrl = `https://untappd.com/search?q=${searchQuery}`;
         
         // Try to detect if we're on mobile
