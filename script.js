@@ -338,18 +338,35 @@ class BeerFestivalApp {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         if (isMobile) {
-            // On mobile, try to launch the app first, fallback to web
-            const startTime = Date.now();
+            // On mobile, try to launch the app with longer timeout
+            let hasLeft = false;
+            
+            // Track if user leaves the page (app opens)
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    hasLeft = true;
+                }
+            };
+            
+            const handleBlur = () => {
+                hasLeft = true;
+            };
+            
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            window.addEventListener('blur', handleBlur);
             
             // Try to launch the app
             window.location.href = untappdAppUrl;
             
-            // If still on page after a short delay, assume app isn't installed and open web version
+            // Wait longer before fallback, and only if user hasn't left page
             setTimeout(() => {
-                if (Date.now() - startTime < 2000) {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                window.removeEventListener('blur', handleBlur);
+                
+                if (!hasLeft) {
                     window.open(untappdWebUrl, '_blank');
                 }
-            }, 500);
+            }, 2500); // Increased timeout to 2.5 seconds
         } else {
             // On desktop, always open web version
             window.open(untappdWebUrl, '_blank');
