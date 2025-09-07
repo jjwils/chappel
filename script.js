@@ -136,6 +136,46 @@ class BeerFestivalApp {
         return match ? parseFloat(match[1]) : 0;
     }
     
+    extractCleanBeerStyle(styleText) {
+        // Remove descriptive adjectives and keep only core beer style nouns
+        const fluffWords = [
+            'magnificent', 'excellent', 'superb', 'fantastic', 'wonderful', 'great', 'fine', 'good',
+            'best', 'premium', 'quality', 'special', 'traditional', 'classic', 'authentic',
+            'smooth', 'rich', 'full', 'light', 'dark', 'strong', 'mild', 'refreshing', 'crisp',
+            'hoppy', 'malty', 'fruity', 'citrusy', 'floral', 'aromatic', 'balanced', 'complex',
+            'distinctive', 'unique', 'original', 'handcrafted', 'artisan', 'craft', 'local',
+            'award-winning', 'gold', 'bronze', 'silver', 'champion', 'winning', 'popular',
+            'famous', 'renowned', 'well-known', 'established', 'new', 'seasonal', 'limited'
+        ];
+        
+        // Split by comma or parentheses to get main style
+        let cleanStyle = styleText.split(/[,\(]/)[0].trim();
+        
+        // Remove common descriptive words but preserve core style terms
+        const words = cleanStyle.split(/\s+/);
+        const filteredWords = words.filter(word => {
+            const lowerWord = word.toLowerCase();
+            // Keep if it's not in fluff words and not a generic descriptor
+            return !fluffWords.includes(lowerWord) && 
+                   !lowerWord.match(/^\d/) && // Remove numbers like "4.2%"
+                   lowerWord.length > 2; // Remove very short words
+        });
+        
+        // If we filtered out everything important, fall back to original first part
+        if (filteredWords.length === 0) {
+            // Try to extract beer style keywords
+            const beerStyles = ['ale', 'bitter', 'ipa', 'lager', 'stout', 'porter', 'wheat', 'pilsner', 'saison', 'sour', 'cider', 'perry'];
+            for (let style of beerStyles) {
+                if (cleanStyle.toLowerCase().includes(style)) {
+                    return style.charAt(0).toUpperCase() + style.slice(1);
+                }
+            }
+            return cleanStyle; // Return original if no beer style found
+        }
+        
+        return filteredWords.join(' ');
+    }
+    
     populateFilters() {
         // Clear existing options (keep the "All" option)
         this.elements.barFilter.innerHTML = '<option value="">All Bars</option>';
@@ -150,10 +190,9 @@ class BeerFestivalApp {
             this.elements.barFilter.appendChild(option);
         });
         
-        // Populate style filter with main style categories
+        // Populate style filter with cleaned beer style categories
         const styles = [...new Set(this.beers.map(beer => {
-            // Extract main style category (before comma or parentheses)
-            return beer.style.split(/[,\(]/)[0].trim();
+            return this.extractCleanBeerStyle(beer.style);
         }))].filter(style => style).sort();
         
         styles.forEach(style => {
