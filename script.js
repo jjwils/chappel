@@ -301,6 +301,7 @@ class BeerFestivalApp {
         
         this.filteredBeers.forEach(beer => {
             const row = document.createElement('tr');
+            row.style.cursor = 'pointer';
             row.innerHTML = `
                 <td class="brewery-cell">${this.escapeHtml(beer.brewery)}</td>
                 <td class="beer-cell">${this.escapeHtml(beer.beer)}</td>
@@ -309,6 +310,10 @@ class BeerFestivalApp {
                 <td>${this.escapeHtml(beer.location)}</td>
                 <td class="bar-cell">${this.escapeHtml(beer.bar)}</td>
             `;
+            
+            // Add click handler for Untappd integration
+            row.addEventListener('click', () => this.openUntappd(beer));
+            
             this.elements.tableBody.appendChild(row);
         });
         
@@ -319,6 +324,36 @@ class BeerFestivalApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    openUntappd(beer) {
+        // Create search query for Untappd
+        const searchQuery = encodeURIComponent(`${beer.brewery} ${beer.beer}`);
+        
+        // Untappd URLs
+        const untappdAppUrl = `untappd://search?q=${searchQuery}`;
+        const untappdWebUrl = `https://untappd.com/search?q=${searchQuery}`;
+        
+        // Try to detect if we're on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // On mobile, try to launch the app first, fallback to web
+            const startTime = Date.now();
+            
+            // Try to launch the app
+            window.location.href = untappdAppUrl;
+            
+            // If still on page after a short delay, assume app isn't installed and open web version
+            setTimeout(() => {
+                if (Date.now() - startTime < 2000) {
+                    window.open(untappdWebUrl, '_blank');
+                }
+            }, 500);
+        } else {
+            // On desktop, always open web version
+            window.open(untappdWebUrl, '_blank');
+        }
     }
     
     showError() {
