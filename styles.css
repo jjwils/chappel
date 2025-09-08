@@ -335,3 +335,15 @@ tbody tr:nth-child(even):hover {
         min-width: 70px;
     }
 }
+
+footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    margin-top: 2rem;
+}
+
+.version {
+    font-size: 0.8rem;
+    color: #999;
+    font-style: italic;
+}
