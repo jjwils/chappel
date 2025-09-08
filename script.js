@@ -329,48 +329,10 @@ class BeerFestivalApp {
     openUntappd(beer) {
         // Create search query for Untappd
         const searchQuery = encodeURIComponent(`${beer.brewery} ${beer.beer}`);
-        
-        // Untappd URLs - try multiple app URL formats
-        const untappdAppUrl = `untappd://search/${searchQuery}`;
         const untappdWebUrl = `https://untappd.com/search?q=${searchQuery}`;
         
-        // Try to detect if we're on mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-            // On mobile, try to launch the app with longer timeout
-            let hasLeft = false;
-            
-            // Track if user leaves the page (app opens)
-            const handleVisibilityChange = () => {
-                if (document.hidden) {
-                    hasLeft = true;
-                }
-            };
-            
-            const handleBlur = () => {
-                hasLeft = true;
-            };
-            
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-            window.addEventListener('blur', handleBlur);
-            
-            // Try to launch the app
-            window.location.href = untappdAppUrl;
-            
-            // Wait longer before fallback, and only if user hasn't left page
-            setTimeout(() => {
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-                window.removeEventListener('blur', handleBlur);
-                
-                if (!hasLeft) {
-                    window.open(untappdWebUrl, '_blank');
-                }
-            }, 2500); // Increased timeout to 2.5 seconds
-        } else {
-            // On desktop, always open web version
-            window.open(untappdWebUrl, '_blank');
-        }
+        // Always open web version on both mobile and desktop
+        window.open(untappdWebUrl, '_blank');
     }
     
     showError() {
