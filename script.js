@@ -309,9 +309,19 @@ class BeerFestivalApp {
     }
     
     showActionMenu(event, beer) {
-        // Remove any existing menu
+        // Check if menu is already open for this beer
         const existingMenu = document.querySelector('.action-menu');
         if (existingMenu) {
+            const existingBeer = existingMenu.getAttribute('data-beer-key');
+            const currentBeerKey = `${beer.brewery}|${beer.beer}`;
+            
+            // If clicking same row, just close the menu
+            if (existingBeer === currentBeerKey) {
+                existingMenu.remove();
+                return;
+            }
+            
+            // Otherwise remove existing menu to show new one
             existingMenu.remove();
         }
         
@@ -321,6 +331,7 @@ class BeerFestivalApp {
         // Create action menu
         const menu = document.createElement('div');
         menu.className = 'action-menu';
+        menu.setAttribute('data-beer-key', `${beer.brewery}|${beer.beer}`);
         
         let statusInfo = '';
         if (availabilityInfo && availabilityInfo.updated_by) {
