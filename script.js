@@ -339,13 +339,8 @@ class BeerFestivalApp {
         this.elements.loading.classList.add('hidden');
         this.elements.error.classList.remove('hidden');
         this.elements.error.innerHTML = `
-            <h3>Unable to load beer data</h3>
-            <p>This could be due to CORS restrictions or network issues. Please try:</p>
-            <ul>
-                <li>Refreshing the page</li>
-                <li>Checking your internet connection</li>
-                <li>Visiting the <a href="https://chappelbeerfestival.org.uk/summer/beerlist.php" target="_blank">original beer list</a> directly</li>
-            </ul>
+            <h3>🍺 Oops, we spilled some beer!</h3>
+            <p>Please refresh the page to try again.</p>
         `;
     }
     
