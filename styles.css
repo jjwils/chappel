@@ -248,6 +248,8 @@ tbody tr:nth-child(even):hover {
     font-size: 0.9rem;
     color: #666;
     text-align: center;
+    white-space: nowrap;
+    min-width: 80px;
 }
 
 .stats {
@@ -325,6 +327,11 @@ tbody tr:nth-child(even):hover {
     }
     
     table {
-        min-width: 800px;
+        min-width: 900px;
+    }
+    
+    .last-seen-cell {
+        font-size: 0.8rem;
+        min-width: 70px;
     }
 }
