@@ -3,6 +3,19 @@ class BeerFestivalApp {
         this.beers = [];
         this.filteredBeers = [];
         this.currentSort = { column: null, direction: 'asc' };
+        this.beerAvailability = new Map(); // Track beer availability
+        
+        // Initialize Supabase client
+        try {
+            this.supabase = window.supabase.createClient(
+                'https://plsnpnixbpcnwwjgkkdo.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsc25wbml4YnBjbnd3amdra2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNTYwMjUsImV4cCI6MjA3MjkzMjAyNX0._jbMUYSfB9wn13AZD5H2oazZ3jSr1Iwh88f5DBvHfVI'
+            );
+            console.log('Supabase client initialized');
+        } catch (error) {
+            console.warn('Supabase initialization failed:', error);
+            this.supabase = null;
+        }
         
         this.elements = {
             loading: document.getElementById('loading'),
@@ -12,6 +25,7 @@ class BeerFestivalApp {
             searchInput: document.getElementById('searchInput'),
             barFilter: document.getElementById('barFilter'),
             styleFilter: document.getElementById('styleFilter'),
+            availabilityFilter: document.getElementById('availabilityFilter'),
             abvMin: document.getElementById('abvMin'),
             abvMax: document.getElementById('abvMax'),
             abvMinValue: document.getElementById('abvMinValue'),
@@ -25,6 +39,7 @@ class BeerFestivalApp {
     async init() {
         this.setupEventListeners();
         await this.loadFreshBeerData();
+        await this.loadBeerAvailability();
     }
     
     setupEventListeners() {
@@ -34,6 +49,7 @@ class BeerFestivalApp {
         // Filter dropdowns
         this.elements.barFilter.addEventListener('change', () => this.filterBeers());
         this.elements.styleFilter.addEventListener('change', () => this.filterBeers());
+        this.elements.availabilityFilter.addEventListener('change', () => this.filterBeers());
         
         // ABV range sliders
         this.elements.abvMin.addEventListener('input', (e) => {
@@ -175,6 +191,184 @@ class BeerFestivalApp {
         return null; // Return null if no core type matches
     }
     
+    async loadBeerAvailability() {
+        if (!this.supabase) {
+            console.warn('Supabase not available, skipping beer availability');
+            return;
+        }
+        
+        try {
+            const { data, error } = await this.supabase
+                .from('beer_availability')
+                .select('brewery, beer_name, is_available, updated_by, updated_at');
+            
+            if (error) {
+                console.warn('Beer availability table not found, skipping:', error.message);
+                return;
+            }
+            
+            // Store availability data in our map
+            this.beerAvailability.clear();
+            data.forEach(item => {
+                const key = `${item.brewery}|${item.beer_name}`;
+                this.beerAvailability.set(key, {
+                    is_available: item.is_available,
+                    updated_by: item.updated_by,
+                    updated_at: item.updated_at
+                });
+            });
+        } catch (error) {
+            console.error('Error loading beer availability:', error);
+        }
+    }
+    
+    async toggleBeerAvailability(beer) {
+        if (!this.supabase) {
+            alert('Beer availability feature is not available - Supabase not initialized');
+            return;
+        }
+        
+        const key = `${beer.brewery}|${beer.beer}`;
+        const currentStatus = this.beerAvailability.get(key) || false;
+        const newStatus = !currentStatus;
+        
+        // Get a simple user identifier (could be improved with actual auth)
+        const userId = this.getUserId();
+        
+        try {
+            const { data, error } = await this.supabase
+                .from('beer_availability')
+                .upsert({
+                    brewery: beer.brewery,
+                    beer_name: beer.beer,
+                    is_available: newStatus,
+                    updated_by: userId,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'brewery,beer_name'
+                });
+            
+            if (error) {
+                console.error('Supabase error details:', error);
+                alert(`Could not update beer availability: ${error.message}`);
+                return;
+            }
+            
+            console.log('Successfully updated beer availability:', data);
+            
+            // Update local state
+            this.beerAvailability.set(key, {
+                is_available: newStatus,
+                updated_by: userId,
+                updated_at: new Date().toISOString()
+            });
+            
+            // Re-render table to show updated status
+            this.renderTable();
+        } catch (error) {
+            console.error('Error updating beer availability:', error);
+        }
+    }
+    
+    getBeerAvailability(beer) {
+        const key = `${beer.brewery}|${beer.beer}`;
+        const data = this.beerAvailability.get(key);
+        return data ? data.is_available : false;
+    }
+    
+    getBeerAvailabilityInfo(beer) {
+        const key = `${beer.brewery}|${beer.beer}`;
+        return this.beerAvailability.get(key) || null;
+    }
+    
+    getUserId() {
+        // Simple user ID generation - stores in localStorage
+        let userId = localStorage.getItem('beer_tracker_user_id');
+        if (!userId) {
+            userId = 'User_' + Math.random().toString(36).substr(2, 6);
+            localStorage.setItem('beer_tracker_user_id', userId);
+        }
+        return userId;
+    }
+    
+    formatTimeAgo(timestamp) {
+        if (!timestamp) return '';
+        
+        const now = new Date();
+        const then = new Date(timestamp);
+        const diffMs = now - then;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return then.toLocaleDateString();
+    }
+    
+    showActionMenu(event, beer) {
+        // Remove any existing menu
+        const existingMenu = document.querySelector('.action-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+        
+        const isAvailable = this.getBeerAvailability(beer);
+        const availabilityInfo = this.getBeerAvailabilityInfo(beer);
+        
+        // Create action menu
+        const menu = document.createElement('div');
+        menu.className = 'action-menu';
+        
+        let statusInfo = '';
+        if (availabilityInfo && availabilityInfo.updated_by) {
+            const timeAgo = this.formatTimeAgo(availabilityInfo.updated_at);
+            const status = availabilityInfo.is_available ? 'available' : 'unavailable';
+            statusInfo = `<div class="status-info">Currently marked ${status}<br>by ${availabilityInfo.updated_by} ${timeAgo}</div>`;
+        }
+        
+        menu.innerHTML = `
+            <div class="action-item" data-action="untappd">
+                📱 View on Untappd
+            </div>
+            <div class="action-item" data-action="availability">
+                ${isAvailable ? '❌ Mark Unavailable' : '✅ Mark Available'}
+            </div>
+            ${statusInfo}
+        `;
+        
+        // Position menu near click point
+        menu.style.left = event.pageX + 'px';
+        menu.style.top = event.pageY + 'px';
+        
+        // Add click handlers
+        menu.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = e.target.dataset.action;
+            
+            if (action === 'untappd') {
+                this.openUntappd(beer);
+            } else if (action === 'availability') {
+                this.toggleBeerAvailability(beer);
+            }
+            
+            menu.remove();
+        });
+        
+        document.body.appendChild(menu);
+        
+        // Remove menu when clicking elsewhere
+        setTimeout(() => {
+            document.addEventListener('click', () => {
+                if (menu.parentNode) {
+                    menu.remove();
+                }
+            }, { once: true });
+        }, 10);
+    }
+    
     populateFilters() {
         // Clear existing options (keep the "All" option)
         this.elements.barFilter.innerHTML = '<option value="">All Bars</option>';
@@ -223,6 +417,7 @@ class BeerFestivalApp {
         const searchTerm = this.elements.searchInput.value.toLowerCase();
         const selectedBar = this.elements.barFilter.value;
         const selectedStyle = this.elements.styleFilter.value;
+        const selectedAvailability = this.elements.availabilityFilter.value;
         const minABV = parseFloat(this.elements.abvMin.value);
         const maxABV = parseFloat(this.elements.abvMax.value);
         
@@ -238,12 +433,20 @@ class BeerFestivalApp {
             const matchesBar = !selectedBar || beer.bar === selectedBar;
             
             // Style filter
-            const matchesStyle = !selectedStyle || beer.style.toLowerCase().includes(selectedStyle.toLowerCase());
+            const matchesStyle = !selectedStyle || 
+                this.extractCleanBeerStyle(beer.style).toLowerCase().includes(selectedStyle.toLowerCase()) ||
+                beer.style.toLowerCase().includes(selectedStyle.toLowerCase());
+            
+            // Availability filter
+            const isAvailable = this.getBeerAvailability(beer);
+            const matchesAvailability = !selectedAvailability || 
+                (selectedAvailability === 'available' && isAvailable) ||
+                (selectedAvailability === 'unavailable' && !isAvailable);
             
             // ABV filter
             const matchesABV = beer.abv >= minABV && beer.abv <= maxABV;
             
-            return matchesSearch && matchesBar && matchesStyle && matchesABV;
+            return matchesSearch && matchesBar && matchesStyle && matchesAvailability && matchesABV;
         });
         
         this.renderTable();
@@ -301,7 +504,13 @@ class BeerFestivalApp {
         
         this.filteredBeers.forEach(beer => {
             const row = document.createElement('tr');
-            row.style.cursor = 'pointer';
+            const isAvailable = this.getBeerAvailability(beer);
+            
+            // Add availability styling
+            if (isAvailable) {
+                row.classList.add('beer-available');
+            }
+            
             row.innerHTML = `
                 <td class="brewery-cell">${this.escapeHtml(beer.brewery)}</td>
                 <td class="beer-cell">${this.escapeHtml(beer.beer)}</td>
@@ -311,13 +520,16 @@ class BeerFestivalApp {
                 <td class="bar-cell">${this.escapeHtml(beer.bar)}</td>
             `;
             
-            // Add click handler for Untappd integration
-            row.addEventListener('click', () => this.openUntappd(beer));
+            // Add click handler to show action menu
+            row.addEventListener('click', (e) => {
+                this.showActionMenu(e, beer);
+            });
             
             this.elements.tableBody.appendChild(row);
         });
         
-        this.elements.resultCount.textContent = `${this.filteredBeers.length} of ${this.beers.length} beers shown`;
+        const availableCount = this.filteredBeers.filter(beer => this.getBeerAvailability(beer)).length;
+        this.elements.resultCount.textContent = `${this.filteredBeers.length} beers shown (${availableCount} available)`;
     }
     
     escapeHtml(text) {

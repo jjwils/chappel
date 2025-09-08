@@ -27,6 +27,12 @@
                     <option value="">All Styles</option>
                 </select>
                 
+                <select id="availabilityFilter">
+                    <option value="">All User Marked Availability</option>
+                    <option value="available">Last Marked Available</option>
+                    <option value="unavailable">Last Marked Unavailable</option>
+                </select>
+                
                 <div class="abv-range">
                     <label>ABV Range:</label>
                     <input type="range" id="abvMin" min="0" max="15" value="0" step="0.1">
@@ -63,6 +69,7 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 </html>

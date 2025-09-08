@@ -165,6 +165,64 @@ tbody tr:nth-child(even):hover {
     background-color: #e8f4fd !important;
 }
 
+.beer-available {
+    background-color: #d4edda !important;
+}
+
+.beer-available:hover {
+    background-color: #c3e6cb !important;
+}
+
+.availability-cell {
+    text-align: center;
+    width: 50px;
+}
+
+.action-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    min-width: 180px;
+}
+
+.action-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.action-item:hover {
+    background-color: #f8f9fa;
+}
+
+.action-item:last-child {
+    border-bottom: none;
+}
+
+.action-item:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.action-item:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.status-info {
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    font-size: 12px;
+    color: #666;
+    border-top: 1px solid #eee;
+    font-style: italic;
+}
+
 .brewery-cell {
     font-weight: 600;
     color: #8B4513;
