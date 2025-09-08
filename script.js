@@ -468,6 +468,12 @@ class BeerFestivalApp {
             if (column === 'abv') {
                 aVal = parseFloat(aVal) || 0;
                 bVal = parseFloat(bVal) || 0;
+            } else if (column === 'last_seen') {
+                // Sort by timestamp for last seen (available only)
+                const aInfo = this.getBeerAvailabilityInfo(a);
+                const bInfo = this.getBeerAvailabilityInfo(b);
+                aVal = aInfo && aInfo.updated_at && aInfo.is_available ? new Date(aInfo.updated_at).getTime() : 0;
+                bVal = bInfo && bInfo.updated_at && bInfo.is_available ? new Date(bInfo.updated_at).getTime() : 0;
             } else {
                 aVal = aVal.toString().toLowerCase();
                 bVal = bVal.toString().toLowerCase();
@@ -511,7 +517,12 @@ class BeerFestivalApp {
                 row.classList.add('beer-available');
             }
             
+            const availabilityInfo = this.getBeerAvailabilityInfo(beer);
+            const lastSeen = availabilityInfo && availabilityInfo.updated_at && availabilityInfo.is_available ? 
+                this.formatTimeAgo(availabilityInfo.updated_at) : 'Never';
+            
             row.innerHTML = `
+                <td class="last-seen-cell">${lastSeen}</td>
                 <td class="brewery-cell">${this.escapeHtml(beer.brewery)}</td>
                 <td class="beer-cell">${this.escapeHtml(beer.beer)}</td>
                 <td>${this.escapeHtml(beer.style)}</td>

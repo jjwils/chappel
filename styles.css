@@ -244,6 +244,12 @@ tbody tr:nth-child(even):hover {
     text-align: center;
 }
 
+.last-seen-cell {
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+}
+
 .stats {
     margin-top: 1rem;
     text-align: center;
