@@ -223,30 +223,87 @@ class BeerFestivalApp {
     }
     
     async toggleBeerAvailability(beer) {
+        console.log('=== toggleBeerAvailability called ===', beer.brewery, beer.beer);
+        
         if (!this.supabase) {
             alert('Beer availability feature is not available - Supabase not initialized');
             return;
         }
         
         const key = `${beer.brewery}|${beer.beer}`;
-        const currentStatus = this.beerAvailability.get(key) || false;
+        
+        // First, get the current status from the database to ensure accuracy
+        let currentStatus = false;
+        let recordExists = false;
+        
+        try {
+            const { data: currentData, error: fetchError } = await this.supabase
+                .from('beer_availability')
+                .select('*')
+                .eq('brewery', beer.brewery)
+                .eq('beer_name', beer.beer)
+                .single();
+                
+            console.log('Current record in DB:', currentData, 'Error:', fetchError);
+                
+            if (!fetchError && currentData) {
+                currentStatus = currentData.is_available;
+                recordExists = true;
+                console.log(`Record exists: is_available=${currentStatus}`);
+            } else {
+                console.log('No record found or error occurred');
+            }
+        } catch (e) {
+            console.log('Exception fetching record:', e);
+        }
+        
         const newStatus = !currentStatus;
         
         // Get a simple user identifier (could be improved with actual auth)
         const userId = this.getUserId();
         
         try {
-            const { data, error } = await this.supabase
-                .from('beer_availability')
-                .upsert({
-                    brewery: beer.brewery,
-                    beer_name: beer.beer,
-                    is_available: newStatus,
-                    updated_by: userId,
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: 'brewery,beer_name'
-                });
+            console.log('Attempting to update beer:', {
+                brewery: beer.brewery,
+                beer_name: beer.beer,
+                record_exists: recordExists,
+                current_status: currentStatus,
+                new_status: newStatus,
+                user_id: userId
+            });
+            
+            // Let's see what the UI thinks the current status is
+            const uiStatus = this.getBeerAvailability(beer);
+            console.log('UI thinks status is:', uiStatus, 'DB says:', currentStatus);
+            
+            // Try different approaches based on whether record exists
+            let error = null;
+            
+            if (recordExists) {
+                console.log('Record exists, doing UPDATE...');
+                const { error: updateError } = await this.supabase
+                    .from('beer_availability')
+                    .update({
+                        is_available: newStatus,
+                        updated_by: userId,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('brewery', beer.brewery)
+                    .eq('beer_name', beer.beer);
+                error = updateError;
+            } else {
+                console.log('Record does not exist, doing INSERT...');
+                const { error: insertError } = await this.supabase
+                    .from('beer_availability')
+                    .insert({
+                        brewery: beer.brewery,
+                        beer_name: beer.beer,
+                        is_available: newStatus,
+                        updated_by: userId,
+                        updated_at: new Date().toISOString()
+                    });
+                error = insertError;
+            }
             
             if (error) {
                 console.error('Supabase error details:', error);
@@ -254,14 +311,10 @@ class BeerFestivalApp {
                 return;
             }
             
-            console.log('Successfully updated beer availability:', data);
+            console.log('Database operation completed, reloading availability data...');
             
-            // Update local state
-            this.beerAvailability.set(key, {
-                is_available: newStatus,
-                updated_by: userId,
-                updated_at: new Date().toISOString()
-            });
+            // Always reload fresh data from database after any change
+            await this.loadBeerAvailability();
             
             // Re-render table to show updated status
             this.renderTable();
