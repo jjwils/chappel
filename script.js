@@ -40,6 +40,8 @@ class BeerFestivalApp {
         this.setupEventListeners();
         await this.loadFreshBeerData();
         await this.loadBeerAvailability();
+        // Now render table with both beer data and availability data loaded
+        this.renderTable();
     }
     
     setupEventListeners() {
@@ -139,7 +141,7 @@ class BeerFestivalApp {
         this.filteredBeers = [...this.beers];
         
         this.populateFilters();
-        this.renderTable();
+        // Don't render table yet - wait for availability data to load first
         this.hideLoading();
         
         // Update loading message to show data timestamp
