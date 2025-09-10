@@ -499,8 +499,9 @@ class BeerFestivalApp {
             const matchesBar = !selectedBar || beer.bar === selectedBar;
             
             // Style filter
+            const cleanStyle = this.extractCleanBeerStyle(beer.style);
             const matchesStyle = !selectedStyle || 
-                this.extractCleanBeerStyle(beer.style).toLowerCase().includes(selectedStyle.toLowerCase()) ||
+                (cleanStyle && cleanStyle.toLowerCase().includes(selectedStyle.toLowerCase())) ||
                 beer.style.toLowerCase().includes(selectedStyle.toLowerCase());
             
             // Availability filter
